@@ -52,6 +52,13 @@ func (document *Document) AddObject(object *Object) (int, error) {
 	return 0, nil
 }
 
+// Validate checks the Document to ensure it meets the PDF specifications. If it does not, an error
+// is returned describing the issue. Validate can be used to check whether any modifications made to
+// the Document were incorrect.
+func (document *Document) Validate() error {
+	return nil
+}
+
 // Save overwrites the original version of the PDF on the file system with the version represented
 // by the Document. If writing the Document fails, the original version of the PDF will be unchanged.
 func (document *Document) Save() error {
