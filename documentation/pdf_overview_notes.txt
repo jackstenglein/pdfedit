@@ -1,0 +1,244 @@
+Cross-reference table is stored at the end of the file. It allows you to locate and directly access
+pages and other important objects.
+
+PDF enforces a strictly-defined file structure. There are no procedures, variables or control 
+constructs. This should make reading PDFs easier. 
+
+PDF syntax consists of four parts:
+- Objects -- see sections 3.1, 3.2 and 3.2.7
+- File structure -- see section 3.4 and section 3.5 for encryption
+- Document structure -- section 3.6
+- Content streams -- section 3.7
+
+Lexical conventions (3.1)
+- Tokens that delimit objects and file structure are in ASCII
+- Reserved words are in ASCII
+- Key names in standard dictionaries are in ASCII
+- Data values of strings and streams do not need to be in ASCII
+
+Characters (3.1.1)
+- Three classes of characters: regular, delimiter and white-space
+- White-space separate syntactic constructs from each other. Outside of comments, strings and streams,
+  any sequence of consecutive white-space characters are treated as one character
+
+Delimiter characters (3.1.1)
+( ) < > [ ] { } / %
+- Special characters that delimit strings, arrays, names and comments
+- All of these terminate the entity preceding it and are not included in the entity
+
+Regular characters (3.1.1)
+- All characters besides white space and delimiters are regular characters. 
+- A sequence of consecutive regular characters makes up a single Tokens
+
+Comments (3.1.2)
+- Any occurrence of % outside of a string or stream
+- Continues until the end of the line
+
+Objects (3.2)
+- 8 basic types of objects: booleans, numbers, strings, names, arrays, dictionaries, streams, null.
+- A labelled object is called an indirect object.
+
+Booleans (3.2.1)
+- The keywords true and false.
+
+Numeric Objects (3.2.2)
+- Integers are written as one or more decimal digits optionally preceded by a sign
+- Real numbers are written as one or more decimal digits with an optional sign and a leading, 
+  trailing or embedded period.
+
+Strings (3.2.3)
+- Strings can be written literally when enclosed in parentheses ()
+  - Any characters can appear in a literal string except unbalanced pareentheses and the backslash
+  - Newlines can appear in a literal string
+  - Backslash is an escape character
+- Strings can be written as hexadecimal data when enclosed in angle brackets <>
+  - Each pair of hexadecimal digits defines one byte of the string
+  - If the final hexadecimal digit is missing, it is assumed to be 0.
+  - White space characters in the string are ignored
+
+Names (3.2.4)
+- Introduced by a / character.
+- No whitespace allowed between the slash and the first character of the name.
+- No whitespace or delimiters allowed in the name, but all regular characters allowed.
+- Any character except null can be included by using the 2-digit hexadecimal code preceded by #
+
+Arrays (3.2.5)
+- 1 dimensional collection of objects arranged sequentially
+- May be heterogeneous--any combination of numbers, strings, dictionaries or any other objects 
+  (including arrays)
+- Arrays are written as a sequence of objects enclosed in square brackets [ ]
+
+Dictionaries (3.2.6)
+- Associative table containing pairs of objects, known as entries
+- Each entry consists of a key and a value
+- The key must be a name
+- The value can be any kind of object, including another dictionary
+- A value of null is equivalent to an absent entry
+- If a key appears more than once, its value is undefined
+- Dictionaries are delimited with double angle brackets << >>
+- By convention, /Type entry identifies the type of object described by the dictionary and /Subtype 
+  or /S further identifies the object.
+  - Value of these entries is always a name.
+  - Value of /Type in any dictionary must be either a name defined by PDF format or a registered 
+    name.
+  - /Type is not required, but if present it must be correct.
+
+Streams (3.2.7)
+- Consists of a dictionary followed by zero or more bytes delimited by the keywords stream and 
+  endstream.
+
+dictionary
+stream
+  bytes
+endstream
+
+- All streams must be indirect objects
+- The stream dictionary must be a direct object
+- stream keyword should be followed by CRLF or LF
+- Stream dictionary specifies the number of bytes between stream and endstream keywords
+- EOL marker before endstream is not included in the stream length
+- /Length dictionary entry indicates number of encoded bytes used for stream data
+- It is an error if the stream contains too much data, with the exception of an extra EOL
+
+
+Null Object (3.2.8)
+- Singleton denoted by the keyword null.
+- An indirect reference to a non-existent object is treated as a null object.
+
+Indirect Objects (3.2.9)
+- Any object can be an indirect object. Gives the object a unique identifier that other objects can
+  use to refer to it.
+- Object identifier consits of a positive integer object number and a non-negative generation number
+- Definition of an indirect object consists of its object number, generation number and the value of
+  the object delimited by the obj and endobj keywords
+
+12 0 obj
+(Test)
+endobj
+
+- Indirect references consist of the object number, the generation number and the keyword R. 12 0 R.
+- Starting in PDF 1.5, indirect objects can be in object streams (section 3.4.6)
+- Content streams can not include indrect references.
+
+
+Canonical PDF structure (3.4)
+- One line header identifying PDF version
+- Body containing the objects
+- Cross-reference table containing info about the indirect objects
+- Trailer giving the location of the cross reference table and certain special objects
+
+File Body (3.4.2)
+- The body consists of a sequence of indirect objects
+- Beginning with PDF 1.5, the body can also contain object streams
+
+Cross Reference Table (3.4.3)
+- Contains info that allows random access to indirect objects
+- Table contains a one-line entry for each indirect object, specifying the location of the object in
+  the file
+- Beginning in PDF 1.5, some or all of this info may be stored in cross-reference streams
+- Table consists of one or more cross-reference sections
+- Each section begins with a line containing the keyword xref
+- After xref are one or more subsections. Each subsection contains entries for a contiguous range of
+  object numbers.
+- A subsection begins with two numbers separated by a space. The first number is the first object 
+  number in the subsection and the second number is the number of entries in the subsection.
+- A given object number cannot have an entry in more than one subsection in a single section.
+- After the subsection header comes the entries, one per line. Each entry is exactly 20 bytes long,
+  including the EOL marker.
+- There are two types of entries: in-use and free.
+  - The format for in use is: nnnnnnnnnn ggggg n eol
+    - nnnnnnnnnn is a 10-digit byte offset, padded with leading zeros
+    - ggggg is a 5-digit generation number, padded with leading zeros
+    - n is a keyword specifying in use
+    - eol is a two-character end of line sequence (either a space and CR or CRLF with no space)
+  - The format for free is: nnnnnnnnnn ggggg f eol
+    - nnnnnnnnnn is a 10-digit object number of the next free object, padded with leading zeros
+- The first entry in the table (object number 0) is always free and has a generation number of 65535
+- All objects initially have generation number of 0, except object 0.
+- When an indirect object is deleted, its cross-reference entry is marked free and the generation
+  number is incremented.
+
+File Trailer (3.4.4)
+- The trailer enables you to quickly find the cross reference table and other special objects.
+- Applications should read a PDF file from its end.
+- The last line of the file contains only the end of file marker %%EOF
+- The two preceding lines contain the keyword startxref and the byte offset from the beginning of 
+  the file to the beginning of the xref keyword in the last cross-reference section
+- startxref is preceded by the trailer dictionary, consisting of the keyword trailer followed by a
+  dictionary.
+  - Entries (size, prev, root cannot be indirect references):
+    - Size -- the total number of entries in the xref table. 1 plus the highest object number
+    - Prev -- the byte offset from the beginning of the file to the beginning of the previous xref
+      section
+    - Root -- The catalog dictionary for the Document
+    - Info -- must be an indirect reference, the document's information dictionary
+    - ID -- optional array of two byte-strings that uniquely identify the file
+
+Incremental Updates (3.4.5)
+- The new xref section when a file is updated contains entries only for objects that have changed,
+  replaced or deleted.
+- The new trailer contains all entries from the previous trailer as well as a Prev entry that Gives
+  the location of the previous cross-reference section.
+- A file that has been updated several times contains several trailers and several %%EOF markers
+
+Object Streams (3.4.6)
+- Stream objects cannot appear in an object stream.
+- Objects with generation number != 0 cannot appear in an object stream.
+- An object representing the value of the Length entry in an object stream dictionary cannot appear
+  in an object stream.
+- Object stream contains a sequence of PDF objects.
+- Each object stream's dictionary must contain all keys from regular stream as well as:
+  - /Type -- must be /ObjStm
+  - /N -- an integer representing the number of compressed objects in the stream
+  - /First -- the byte offset in the decoded stream of the first compressed object
+  - /Extends -- optional pointer to another object stream
+- An object stream consists of the following items:
+  - N pairs of integers, where the first integer represents the object number and the second integer
+    is the byte offset of that object relative to the first object. Offsets must be in increasing
+    order
+  - N objects stored consecutively. obj and endobj keywords are not used.
+- The generation number of an object stream and any compressed object is implicity zero.
+
+Cross Reference Streams (3.4.7)
+- Beginning in PDF-1.5, xref info can be stored in an xref stream instead of in an xref table.
+- xref streams are stream objects (3.2.7) and contain a dictionary and a data stream.
+- Each xref stream contains info equivalent to the xref table and trailer for one xref section.
+- Trailer dictionary entries are stored in the stream dictionary
+- xref table entries are stored in the stream data
+- Value following startxref is now the offset of the xref stream rather than the xref keyword
+- If a file uses xref streams entirely, keywords xref and trailer are no longer used.
+- xref stream cannot be encrypted
+- An entry for the cross-reference stream must exist in itself
+
+Cross Reference Stream Dictionary (3.4.7)
+- Entries specific to xref stream dictionaries (must be direct objects):
+  - /Type -- must be /XRef
+  - /Size -- equivalent to /Size in the trailer dictionary
+  - /Index -- an array containing a pair of integers for each subsection in this section. The first
+    integer is the first object number in the subsection. The second integer is the number of 
+    entries in the subsection.
+  - /Prev -- the byte offset from the beginning of the file to the beginning of the previous xref
+    stream
+  - /W -- An array of integers representing the size of the fields in a single xref entry. 
+
+Cross Reference Stream Data (3.4.7)
+- Each entry has one or more fields, the first of which designates the entry's type. 
+- Only types 0, 1 and 2 are allowed. Any other value is a reference to the null object.
+  - Type 0 -- the linked list of free objects (correspond to f entries in xref table)
+  - Type 1 -- objects that are in use but are not compressed (correspond to n entries in xref table)
+  - Type 2 -- compressed objects
+- Type 0 fields
+  - Field 1 -- the type, which must be 0
+  - Field 2 -- the object number of the next free object
+  - Field 3 -- the generation number to use if this object number is used again
+- Type 1 fields
+  - Field 1 -- the type, which must be 1
+  - Field 2 -- the byte offset of the object
+  - Field 3 -- the generation number of the object
+- Type 2 fields
+  - Field 1 -- the type, which must be 2
+  - Field 2 -- the object number of the object stream in which this object is stored
+  - Field 3 -- the index of this object within the object stream
+
+
+Start at section 3.6 next time you read.
