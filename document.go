@@ -1,8 +1,17 @@
 // Package pdfedit provides types and functions for parsing and editing PDF files.
 package pdfedit
 
+import (
+	"os"
+)
+
 // Document represents a PDF file.
-type Document struct{}
+type Document struct {
+	Filepath   string
+	File       *os.File
+	fileSize   int64
+	xrefOffset int
+}
 
 // NewDocument returns a Document representing the PDF at the given file path.
 func NewDocument(filepath string) (*Document, error) {
